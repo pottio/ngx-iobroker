@@ -1,13 +1,21 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { IoBrokerWsService } from '../../../ngx-iobroker/src/public-api';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet],
+  imports: [],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.scss'
 })
 export class AppComponent {
-  title = 'sample-app';
+  private readonly _ioBroker = inject(IoBrokerWsService);
+
+  public readonly ioBrokerConnected = toSignal(this._ioBroker.connected$, { initialValue: false });
+
+  constructor() {
+    this._ioBroker.stateChanged$.pipe(takeUntilDestroyed()).subscribe((value) => {
+      console.log(`${value.id}: ${value.state?.val}`);
+    });
+  }
 }

@@ -3,4 +3,4 @@
  */
 
 export * from './lib/ngx-iobroker.service';
-export * from './lib/ngx-iobroker.component';
+export * from './lib/models';
