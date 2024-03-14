@@ -1,0 +1,21 @@
+{
+  "name": "ngx-iobroker",
+  "version": "0.0.2",
+  "description": "Angular websocket client for ioBroker (ioBroker.ws / ioBroker.web)",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pottio/ngx-iobroker.git"
+  },
+  "license": "MIT",
+  "author": "pottio (https://github.com/pottio)",
+  "peerDependencies": {
+    "@angular/common": "^17.2.0",
+    "@angular/core": "^17.2.0",
+    "@iobroker/types": "^5.0.19",
+    "@iobroker/socket-client": "^2.3.15"
+  },
+  "dependencies": {
+    "tslib": "^2.3.0"
+  },
+  "sideEffects": false
+}
