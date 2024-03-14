@@ -8,7 +8,7 @@ This library offers the possibility to integrate a <a href="https://github.com/i
 
 <p align="center">
 <a href="https://www.npmjs.com/package/ngx-iobroker"><img alt="npm" src="https://img.shields.io/npm/v/ngx-iobroker"></a>
-<a href="https://github.com/pottio/ngx-iobroker/blob/master/LICENSE"><img alt="GitHub" src="https://img.shields.io/github/license/pottio/ngx-iobroker"></a>
+<a href="https://github.com/pottio/ngx-iobroker/blob/main/LICENSE"><img alt="GitHub" src="https://img.shields.io/github/license/pottio/ngx-iobroker"></a>
 </p>
 
 <br/>
