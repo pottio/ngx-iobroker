@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build ngx-iobroker",
     "test": "ng test  ngx-iobroker",
-    "build-sample": "ng build sample-app"
+    "build-sample": "ng build sample-app",
+    "bump-version": "rjp projects/ngx-iobroker/package.json version $VERSION"
   },
   "private": true,
   "dependencies": {
@@ -45,6 +46,7 @@
     "ng-packagr": "^17.3.0",
     "prettier": "^3.2.5",
     "prettier-plugin-organize-imports": "^3.2.4",
+    "replace-json-property": "^1.9.0",
     "semantic-release": "^23.0.2",
     "typescript": "~5.4.2"
   }
