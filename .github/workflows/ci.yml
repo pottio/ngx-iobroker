@@ -1,12 +1,14 @@
-name: Build
+name: CI
 
 on:
   push:
     branches:
-      - ! 'main'
-
+      - '*'
+      - '*/*'
+      - '**'
+      - '!main'
 jobs:
-  release:
+  CI:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
