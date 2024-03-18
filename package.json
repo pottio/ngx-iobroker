@@ -19,7 +19,7 @@
     "@angular/platform-browser": "^17.3.0",
     "@angular/platform-browser-dynamic": "^17.3.0",
     "@angular/router": "^17.3.0",
-    "@iobroker/socket-client": "^2.3.15",
+    "@iobroker/socket-client": "^2.3.16",
     "rxjs": "~7.8.1",
     "tslib": "^2.6.2",
     "zone.js": "~0.14.4"
@@ -30,11 +30,11 @@
     "@angular/compiler-cli": "^17.3.0",
     "@iobroker/types": "^5.0.19",
     "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/commit-analyzer": "^11.1.0",
+    "@semantic-release/commit-analyzer": "^12.0.0",
     "@semantic-release/exec": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^9.2.6",
-    "@semantic-release/npm": "^11.0.3",
+    "@semantic-release/github": "^10.0.2",
+    "@semantic-release/npm": "^12.0.0",
     "@semantic-release/release-notes-generator": "^12.1.0",
     "@types/jasmine": "~5.1.4",
     "jasmine-core": "~5.1.2",
@@ -47,7 +47,7 @@
     "prettier": "^3.2.5",
     "prettier-plugin-organize-imports": "^3.2.4",
     "replace-json-property": "^1.9.0",
-    "semantic-release": "^23.0.2",
+    "semantic-release": "^23.0.5",
     "typescript": "~5.4.2"
   }
 }

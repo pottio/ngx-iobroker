@@ -104,7 +104,7 @@ export class AppComponent {
 | autoLoadScriptOnInit | Auto load necessary socket javascript file from ioBroker server\* | optional |
 | autoSubscribes       | Directly subscribes to IDs/Patterns after init connection         | optional |
 
-\* if deactivated `` it is necessary to load the script in client via index.html:
+\* if deactivated `autoLoadScriptOnInit` it is necessary to load the script in client via index.html:
 
 ```html
 <!doctype html>
