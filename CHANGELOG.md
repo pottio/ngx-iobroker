@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/pottio/ngx-iobroker/compare/v1.0.0...v1.0.1) (2024-03-18)
+
+
+### Bug Fixes
+
+* **deps:** Updated @iobroker/socket-client to v2.3.16 ([1e3d6a8](https://github.com/pottio/ngx-iobroker/commit/1e3d6a8e2c01410402ce4b579c0c8585983b8aa4))
+
 # 1.0.0 (2024-03-14)
 
 
