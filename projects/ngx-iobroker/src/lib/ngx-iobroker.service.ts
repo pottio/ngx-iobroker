@@ -1,6 +1,6 @@
 import { Injectable, InjectionToken, inject } from '@angular/core';
 import { IoBrokerHistoryConfig, IoBrokerHistoryConfigResult, IoBrokerWsConfiguration } from './models';
-import { Connection, PROGRESS, SystemConfig } from '@iobroker/socket-client';
+import { Connection, PROGRESS } from '@iobroker/socket-client';
 import '@iobroker/types';
 import { BehaviorSubject, Observable, Subject, filter, from, map } from 'rxjs';
 
@@ -106,7 +106,7 @@ export class IoBrokerWsService {
    * @param compact - Flag for detailed or compact result
    * @returns The system configuration
    */
-  public getSystemConfig(compact: boolean): Observable<SystemConfig> {
+  public getSystemConfig(compact: boolean): Observable<ioBroker.SystemConfigObject> {
     return from(compact ? this._connection.getCompactSystemConfig() : this._connection.getSystemConfig());
   }
 
