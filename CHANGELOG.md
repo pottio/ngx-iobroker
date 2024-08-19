@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/pottio/ngx-iobroker/compare/v1.0.2...v1.1.0) (2024-08-19)
+
+
+### Features
+
+* Angular 18 compatibility ([c0aaf17](https://github.com/pottio/ngx-iobroker/commit/c0aaf17f1acd22aa4aadf3f24e972be159b960dd))
+
 ## [1.0.2](https://github.com/pottio/ngx-iobroker/compare/v1.0.1...v1.0.2) (2024-04-01)
 
 
