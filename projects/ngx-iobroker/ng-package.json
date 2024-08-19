@@ -3,5 +3,6 @@
   "dest": "../../dist/ngx-iobroker",
   "lib": {
     "entryFile": "src/public-api.ts"
-  }
+  },
+  "assets": ["README.md"]
 }

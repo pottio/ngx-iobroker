@@ -101,7 +101,7 @@ export class AppComponent {
 
 | Parameter            | Description                                                       | Required |
 | -------------------- | ----------------------------------------------------------------- | -------- |
-| clientName           | right-aligned                                                     | required |
+| clientName           | Individual name                                                   | required |
 | hostnameOrIp         | The hostname or ip of ioBroker                                    | required |
 | port                 | The port number of web / ws adapter                               | required |
 | secureConnection     | Connect via HTTPS                                                 | optional |
