@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/pottio/ngx-iobroker/compare/v1.1.0...v1.1.1) (2024-08-19)
+
+
+### Bug Fixes
+
+* Added readme for npm ([bc675f1](https://github.com/pottio/ngx-iobroker/commit/bc675f1f56755184c938e387be6a31785bc4091e))
+
 # [1.1.0](https://github.com/pottio/ngx-iobroker/compare/v1.0.2...v1.1.0) (2024-08-19)
 
 
