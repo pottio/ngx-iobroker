@@ -11,7 +11,6 @@ This library offers the possibility to integrate a <a href="https://github.com/i
 <a href="https://github.com/pottio/ngx-iobroker/blob/main/LICENSE"><img alt="GitHub" src="https://img.shields.io/github/license/pottio/ngx-iobroker"></a>
 </p>
 
-
 <br/>
 
 ## Requirements
@@ -21,6 +20,13 @@ A [ioBroker](https://github.com/ioBroker) server with installed adapter [ioBroke
 ![Adapter configuration](docs/adapter-config.png)
 
 In case of secure connection via HTTPS and self signed certificate, make sure the root CA is installed as trusted CA on all client devices.
+
+Angular version compatibility matrix
+
+| ngx-iobroker | Angular |
+| ------------ | ------- |
+| 1.0.x        | 17.x    |
+| 1.1.x        | 18.x    |
 
 ## Getting Started
 
