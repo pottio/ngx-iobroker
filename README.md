@@ -25,8 +25,9 @@ Angular version compatibility matrix
 
 | ngx-iobroker | Angular |
 | ------------ | ------- |
-| 1.0.x        | 17.x    |
+| 1.2.x        | 19.x    |
 | 1.1.x        | 18.x    |
+| 1.0.x        | 17.x    |
 
 ## Getting Started
 

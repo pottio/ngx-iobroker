@@ -3,10 +3,9 @@ import { IoBrokerWsService } from '../../../ngx-iobroker/src/public-api';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [],
-  templateUrl: './app.component.html',
+    selector: 'app-root',
+    imports: [],
+    templateUrl: './app.component.html'
 })
 export class AppComponent {
   private readonly _ioBroker = inject(IoBrokerWsService);
