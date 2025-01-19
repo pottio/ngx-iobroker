@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/pottio/ngx-iobroker/compare/v1.1.1...v1.2.0) (2025-01-19)
+
+
+### Features
+
+* Angular 19 and dependency updates ([a5fd025](https://github.com/pottio/ngx-iobroker/commit/a5fd025c09945dea53e9310fd3f6b57c998be8f5))
+
 ## [1.1.1](https://github.com/pottio/ngx-iobroker/compare/v1.1.0...v1.1.1) (2024-08-19)
 
 
