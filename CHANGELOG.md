@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/pottio/ngx-iobroker/compare/v1.2.0...v1.2.1) (2026-05-16)
+
+
+### Bug Fixes
+
+* **pencil:** Updated package-lock.json ([805e072](https://github.com/pottio/ngx-iobroker/commit/805e072863b7ac1a25212a14b501e0dab98c31c3))
+
 # [1.2.0](https://github.com/pottio/ngx-iobroker/compare/v1.1.1...v1.2.0) (2025-01-19)
 
 
