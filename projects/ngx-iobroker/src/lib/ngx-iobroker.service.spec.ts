@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
-import { IoBrokerWsService, ioBrokerWsConfigurationToken, IoBrokerWsConfiguration } from 'ngx-iobroker';
+import { IoBrokerWebSocketService, ioBrokerWebSocketConfigurationToken, IoBrokerWebSocketConfiguration } from 'ngx-iobroker';
 
-const ioBrokerConfiguration: IoBrokerWsConfiguration = {
+const ioBrokerConfiguration: IoBrokerWebSocketConfiguration = {
   clientName: 'sample-app',
   hostnameOrIp: '<ioBrokerIpOrHostname>',
   port: 8082,
@@ -11,16 +11,14 @@ const ioBrokerConfiguration: IoBrokerWsConfiguration = {
     user: '<ioBrokerUser>',
     password: '<ioBrokerPassword>',
   },
-  autoLoadScriptOnInit: true,
-  autoSubscribes: ['0_userdata.*'],
 };
 
-describe('IoBrokerWsService', () => {
-  let service: IoBrokerWsService;
+describe('IoBrokerWebSocketService', () => {
+  let service: IoBrokerWebSocketService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({ providers: [{ provide: ioBrokerWsConfigurationToken, useValue: ioBrokerConfiguration }] });
-    service = TestBed.inject(IoBrokerWsService);
+    TestBed.configureTestingModule({ providers: [{ provide: ioBrokerWebSocketConfigurationToken, useValue: ioBrokerConfiguration }] });
+    service = TestBed.inject(IoBrokerWebSocketService);
   });
 
   it('should be created', () => {

@@ -1,3 +1,16 @@
+# [20.0.0](https://github.com/pottio/ngx-iobroker/compare/v19.0.0...v20.0.0) (2026-05-24)
+
+
+* Angular20 ([#5](https://github.com/pottio/ngx-iobroker/issues/5)) ([8f449ce](https://github.com/pottio/ngx-iobroker/commit/8f449ce5339faed7382ab95b1991321d050670f9))
+
+
+### BREAKING CHANGES
+
+* Updated to Angular 20
+
+* perf(pencil): renaming and extensive refactoring of the structure and methods
+* The service is renamed from IoBrokerWsService to IoBrokerWebSocketService. Lots of method names are chagned as well.
+
 ## [1.2.1](https://github.com/pottio/ngx-iobroker/compare/v1.2.0...v1.2.1) (2026-05-16)
 
 

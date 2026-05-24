@@ -1,9 +1,9 @@
 import { ApplicationConfig } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
-import { IoBrokerWsConfiguration, ioBrokerWsConfigurationToken } from '../../../ngx-iobroker/src/public-api';
+import { IoBrokerWebSocketConfiguration, ioBrokerWebSocketConfigurationToken } from '../../../ngx-iobroker/src/public-api';
 
-const ioBrokerConfiguration: IoBrokerWsConfiguration = {
+const ioBrokerConfiguration: IoBrokerWebSocketConfiguration = {
   clientName: 'sample-app',
   hostnameOrIp: '<ioBrokerIpOrHostname>',
   port: 8082,
@@ -13,15 +13,13 @@ const ioBrokerConfiguration: IoBrokerWsConfiguration = {
     user: '<ioBrokerUser>',
     password: '<ioBrokerPassword>',
   },
-  autoLoadScriptOnInit: true,
-  autoSubscribes: ['0_userdata.*'],
 };
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
     {
-      provide: ioBrokerWsConfigurationToken,
+      provide: ioBrokerWebSocketConfigurationToken,
       useValue: ioBrokerConfiguration,
     },
   ],
