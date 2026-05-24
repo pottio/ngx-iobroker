@@ -30,11 +30,11 @@
     "@iobroker/types": "^7.0.6",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/exec": "^7.1.0",
     "@semantic-release/git": "^10.0.1",
-    "@semantic-release/github": "^11.0.1",
-    "@semantic-release/npm": "^12.0.1",
-    "@semantic-release/release-notes-generator": "^14.0.3",
+    "@semantic-release/github": "^12.0.8",
+    "@semantic-release/npm": "^13.1.5",
+    "@semantic-release/release-notes-generator": "^14.1.1",
     "@types/jasmine": "~5.1.5",
     "jasmine-core": "~5.5.0",
     "karma": "~6.4.4",
@@ -46,7 +46,12 @@
     "prettier": "^3.4.2",
     "prettier-plugin-organize-imports": "^4.1.0",
     "replace-json-property": "^1.9.0",
+<<<<<<< Updated upstream
     "semantic-release": "^24.2.1",
     "typescript": "~5.5.4"
+=======
+    "semantic-release": "^25.0.3",
+    "typescript": "~5.9.3"
+>>>>>>> Stashed changes
   }
 }
