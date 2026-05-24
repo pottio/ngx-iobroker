@@ -1,144 +1,705 @@
-import { Injectable, InjectionToken, inject } from '@angular/core';
-import { IoBrokerHistoryConfig, IoBrokerHistoryConfigResult, IoBrokerWsConfiguration } from './models';
-import { Connection, PROGRESS } from '@iobroker/socket-client';
+import { inject, Injectable, InjectionToken } from '@angular/core';
 import '@iobroker/types';
-import { BehaviorSubject, Observable, Subject, filter, from, map } from 'rxjs';
+import { Subject } from 'rxjs';
+import { CallbackRequestError, IoBrokerWebSocketClient } from './client/ioBrokerWebSocketClient';
+import { IoBrokerHistoryConfig, IoBrokerHistoryConfigResult, IoBrokerWebSocketConfiguration } from './models';
 
-export const ioBrokerWsConfigurationToken = new InjectionToken<IoBrokerWsConfiguration>('ioBrokerWsConfigurationToken');
+export const ioBrokerWebSocketConfigurationToken = new InjectionToken<IoBrokerWebSocketConfiguration>('ioBrokerWebSocketConfigurationToken');
 
 @Injectable({
   providedIn: 'root',
 })
-export class IoBrokerWsService {
+export class IoBrokerWebSocketService {
   private _defaultHistoryAdapter = 'history.0';
-  private _config = inject(ioBrokerWsConfigurationToken);
+  private _config = inject(ioBrokerWebSocketConfigurationToken);
+  private readonly _socketClient = inject(IoBrokerWebSocketClient);
+  private readonly _stateChanged: Subject<{ id: string; state: ioBroker.State | null }> = new Subject<{
+    id: string;
+    state: ioBroker.State | null;
+  }>();
+  private readonly _objectChanged: Subject<{ id: string; object: ioBroker.Object | null }> = new Subject<{
+    id: string;
+    object: ioBroker.Object | null;
+  }>();
 
-  private readonly _connection: Connection;
+  ready$ = this._socketClient.ready$;
+  connectionState$ = this._socketClient.connectionState$;
+  errors$ = this._socketClient.errors$;
 
-  private _connected: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
-  private _connectionProgress: BehaviorSubject<PROGRESS> = new BehaviorSubject<PROGRESS>(PROGRESS.CONNECTING);
-
-  private _objectChanged: Subject<{ id: string; object: ioBroker.Object | null | undefined }> = new Subject<{ id: string; object: ioBroker.Object | null | undefined }>();
-  private _stateChanged: Subject<{ id: string; state: ioBroker.State | null | undefined }> = new Subject<{ id: string; state: ioBroker.State | null | undefined }>();
-
-  /**
-   * Returns the connection object from the ioBroker socker client. Can be used if functions are missing in the wrapper service.
-   *
-   * See ioBroker documentation for supported methods: {@link https://github.com/ioBroker/ioBroker.socket-classes#web-methods}
-   *
-   * @returns The connection object
-   */
-  public get connection(): Connection {
-    return this._connection;
-  }
-
-  /**
-   * Observes connection state.
-   */
-  public readonly connected$ = this._connected.asObservable();
-  /**
-   * Observes connection progress.
-   */
-  public readonly connectionProgress$ = this._connectionProgress.asObservable();
-  /**
-   * Observes all object changes. Call `listenObjectChanges` to add object IDs
-   */
-  public readonly objectChanged$ = this._objectChanged.asObservable();
-  /**
-   * Observes all state changes. Call `listenStateChanges` to add object IDs
-   */
-  public readonly stateChanged$ = this._stateChanged.asObservable();
+  stateChanged$ = this._stateChanged.asObservable();
+  objectChanged$ = this._objectChanged.asObservable();
 
   constructor() {
-    this._connection = this.createConnection();
-    this.initAsync();
+    this.initEventListeners();
   }
 
-  /**
-   * Adds subscription for given object id
-   *
-   * @param id - The object id
-   */
-  public listenObjectChanges(id: string): void {
-    this._connection.subscribeObject(id, (id: string, obj: ioBroker.Object | null | undefined) => {
-      this._objectChanged.next({ id, object: obj });
+  private initEventListeners(): void {
+    this._socketClient.on('stateChange', (payload) => {
+      const [id, state]: [string, ioBroker.State] = payload;
+      if (id && state) {
+        this._stateChanged.next({ id, state });
+      }
+    });
+    this._socketClient.on('objectChange', (payload) => {
+      const [id, obj]: [string, ioBroker.Object] = payload;
+      if (id && obj) {
+        this._objectChanged.next({ id, object: obj });
+      }
     });
   }
 
-  /**
-   * Adds subscription for given state id
-   *
-   * @param id - The state id
+  private async sendCallbackResult<T>(command: string, args: any[]): Promise<T | null> {
+    try {
+      const result = await this._socketClient.sendCallbackRequest<[CallbackRequestError, T]>(command, args);
+      return result[1] ?? null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  private async sendCallbackResultArray<T extends any[]>(command: string, args: any[]): Promise<T | null> {
+    try {
+      return await this._socketClient.sendCallbackRequest<T>(command, args);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  private async sendCommand(command: string, args: any[]): Promise<void> {
+    await this._socketClient.sendCallbackRequest<[CallbackRequestError]>(command, args);
+  }
+
+  /*
+   * CONNECTION MANAGEMENT
    */
-  public listenStateChanges(id: string): void {
-    this._connection.subscribeState(id, (id: string, state: ioBroker.State | null | undefined) => {
-      this._stateChanged.next({ id, state });
+
+  async connect(): Promise<void> {
+    const clientName = this._config.clientName.length <= 0 ? `ngx-iobroker.client${Math.floor(Math.random() * 500)}` : this._config.clientName;
+    return await this._socketClient.connect({
+      host: this._config.hostnameOrIp,
+      port: this._config.port,
+      useSSL: this._config.secureConnection ?? false,
+      username: this._config.credentials?.user,
+      password: this._config.credentials?.password,
+      name: clientName,
     });
   }
 
-  /**
-   * Observes object changes of single object
-   *
-   * @param id - The object id
+  async disconnect(): Promise<void> {
+    return this._socketClient.disconnect();
+  }
+
+  /*
+   * COMMANDS AND CALLBACK REQUESTS
    */
-  public objectChangedFilterBy(id: string): Observable<ioBroker.Object | null | undefined> {
-    return this.objectChanged$.pipe(
-      filter((value) => value.id === id),
-      map((value) => value.object),
-    );
+
+  /**
+   * Authenticate the user with the ioBroker server.
+   *
+   * @returns The current authentication state.
+   */
+  async authenticate(): Promise<{ isUserAuthenticated: boolean; isAuthenticationUsed: boolean } | null> {
+    const result = await this.sendCallbackResultArray<[boolean, boolean]>('authenticate', []);
+    if (!result) {
+      return null;
+    }
+    return {
+      isUserAuthenticated: result[0],
+      isAuthenticationUsed: result[1],
+    };
   }
 
   /**
-   * Observes state changes of single state
+   * Update the token expiration on the ioBroker server.
    *
-   * @param id - The state id
+   * @param accessToken - The new access token.
+   * @returns True when the token expiration was updated successfully, otherwise null.
    */
-  public stateChangedFilterBy(id: string): Observable<ioBroker.State | null | undefined> {
-    return this.stateChanged$.pipe(
-      filter((value) => value.id === id),
-      map((value) => value.state),
-    );
+  async updateTokenExpiration(accessToken: string): Promise<boolean | null> {
+    return this.sendCallbackResult<boolean | null>('updateTokenExpiration', [accessToken]);
   }
 
   /**
-   * Gets the system configuration.
+   * Write an error entry into the ioBroker log.
    *
-   * @param compact - Flag for detailed or compact result
-   * @returns The system configuration
+   * @param error - Error message or Error object.
+   * @returns A promise that resolves when the log entry has been sent.
    */
-  public getSystemConfig(compact: boolean): Observable<ioBroker.SystemConfigObject> {
-    return from(compact ? this._connection.getCompactSystemConfig() : this._connection.getSystemConfig());
+  async error(error: Error | string): Promise<void> {
+    await this.sendCommand('error', [error]);
   }
 
   /**
-   * Get all enums with the given name.
+   * Write a log entry into the ioBroker log.
    *
-   * @param _enum - The name of the enum, like `rooms` or `functions`
-   * @returns The enums
+   * @param text - Log text.
+   * @param level - Log level, defaults to 'debug'.
+   * @returns A promise that resolves when the log entry has been sent.
    */
-  public getEnums(_enum?: string): Observable<Record<string, ioBroker.EnumObject>> {
-    return from(this._connection.getEnums(_enum));
+  async log(text: string, level: ioBroker.LogLevel = 'debug'): Promise<void> {
+    await this.sendCommand('log', [text, level]);
   }
 
   /**
-   * Get the list of all groups.
+   * Check whether a feature is supported by the current js-controller.
    *
-   * @returns The list of groups
+   * @param feature - Feature name.
+   * @returns True if the feature is supported, otherwise null.
    */
-  public getGroups(): Observable<ioBroker.GroupObject[]> {
-    return from(this._connection.getGroups());
+  async checkFeatureSupported(feature: string): Promise<boolean | null> {
+    return this.sendCallbackResult<boolean | null>('checkFeatureSupported', [feature]);
   }
 
   /**
-   * Get the history of a given state.
+   * Get history data for a specific state.
    *
-   * @param id - The state ID
-   * @param options - The history parameters
-   * @retuns The historical states
+   * @param id - Object or state ID.
+   * @param options - History query options.
+   * @returns The history result or null.
    */
-  public getHistory(id: string, options: ioBroker.GetHistoryOptions): Observable<ioBroker.GetHistoryResult> {
-    return from(this._connection.getHistory(id, options));
+  async getHistory(id: string, options: ioBroker.GetHistoryOptions): Promise<ioBroker.GetHistoryResult | null> {
+    return this.sendCallbackResult<ioBroker.GetHistoryResult | null>('getHistory', [id, options]);
   }
+
+  /**
+   * Perform an HTTP GET request from the server side.
+   *
+   * @param url - URL to fetch.
+   * @returns The HTTP response status, statusText and body data or null.
+   */
+  async httpGet(url: string): Promise<{ status: number; statusText: string; data: string } | null> {
+    return this.sendCallbackResult<{ status: number; statusText: string; data: string } | null>('httpGet', [url]);
+  }
+
+  /**
+   * Send a message to a specific adapter instance.
+   *
+   * @param adapterInstance - Target instance name.
+   * @param command - Command name.
+   * @param data - Optional payload.
+   * @returns The adapter response or null.
+   */
+  async sendTo(adapterInstance: string, command: string, data?: any): Promise<any | null> {
+    return this.sendCallbackResult<any | null>('sendTo', [adapterInstance, command, data]);
+  }
+
+  /**
+   * Send a message to a specific host.
+   *
+   * @param host - Host name.
+   * @param command - Host command.
+   * @param data - Command-specific payload.
+   * @returns The host result or null.
+   */
+  async sendToHost(host: string, command: string, data?: any): Promise<{ error?: string; result?: any } | null> {
+    return this.sendCallbackResult<{ error?: string; result?: any } | null>('sendToHost', [host, command, data]);
+  }
+
+  /**
+   * Ask the server if authentication is enabled and whether the user is authenticated.
+   *
+   * @returns The authentication state or null.
+   */
+  async authEnabled(): Promise<{
+    isUserAuthenticated: boolean | Error | string;
+    isAuthenticationUsed: boolean;
+  } | null> {
+    const result = await this.sendCallbackResultArray<[boolean | Error | string, boolean]>('authEnabled', []);
+    if (!result) {
+      return null;
+    }
+    return {
+      isUserAuthenticated: result[0],
+      isAuthenticationUsed: result[1],
+    };
+  }
+
+  /**
+   * Logout the current user.
+   *
+   * @returns A promise that resolves when logout is complete.
+   */
+  async logout(): Promise<void> {
+    await this.sendCommand('logout', []);
+  }
+
+  /**
+   * List available permissions and commands.
+   *
+   * @returns A permissions map or null.
+   */
+  async listPermissions(): Promise<Record<string, { type: 'object' | 'state' | 'users' | 'other' | 'file' | ''; operation: any }> | null> {
+    return this.sendCallbackResult<Record<string, { type: 'object' | 'state' | 'users' | 'other' | 'file' | ''; operation: any }> | null>('listPermissions', []);
+  }
+
+  /**
+   * Get the permissions of the current user.
+   *
+   * @returns The user's permission map or null.
+   */
+  async getUserPermissions(): Promise<Record<string, any> | null> {
+    return this.sendCallbackResult<Record<string, any> | null>('getUserPermissions', []);
+  }
+
+  /**
+   * Get the adapter version and its name.
+   *
+   * @returns The adapter version and name or null.
+   */
+  async getVersion(): Promise<{ version: string | undefined; adapterName: string } | null> {
+    const result = await this.sendCallbackResultArray<[CallbackRequestError, string | undefined, string]>('getVersion', []);
+    if (!result) {
+      return null;
+    }
+    return { version: result[1] ?? undefined, adapterName: result[2] };
+  }
+
+  /**
+   * Get the adapter name.
+   *
+   * @returns The adapter name or null.
+   */
+  async getAdapterName(): Promise<string | null> {
+    return this.sendCallbackResult<string | null>('getAdapterName', []);
+  }
+
+  /**
+   * Subscribe to messages from another instance.
+   *
+   * @param targetInstance - The target instance name.
+   * @param messageType - The message type.
+   * @param data - Optional payload.
+   * @returns The subscription result or null.
+   */
+  async clientSubscribe(targetInstance: string, messageType: string, data: any): Promise<{ accepted: boolean; heartbeat?: number; error?: string } | null> {
+    return this.sendCallbackResult<{ accepted: boolean; heartbeat?: number; error?: string } | null>('clientSubscribe', [targetInstance, messageType, data]);
+  }
+
+  /**
+   * Unsubscribe from messages from another instance.
+   *
+   * @param targetInstance - The target instance name.
+   * @param messageType - The message type.
+   * @returns A promise that resolves when the unsubscribe request is sent.
+   */
+  async clientUnsubscribe(targetInstance: string, messageType: string): Promise<void> {
+    await this.sendCommand('clientUnsubscribe', [targetInstance, messageType]);
+  }
+
+  /**
+   * Get a compact copy of the system configuration.
+   *
+   * @returns The compact system configuration or null.
+   */
+  async getCompactSystemConfig(): Promise<{
+    common: ioBroker.SystemConfigCommon;
+    native?: { secret: string; vendor?: any };
+  } | null> {
+    return this.sendCallbackResult<{
+      common: ioBroker.SystemConfigCommon;
+      native?: { secret: string; vendor?: any };
+    } | null>('getCompactSystemConfig', []);
+  }
+
+  /**
+   * Get adapter instances by adapter name.
+   *
+   * @param adapterName - Optional adapter name.
+   * @returns The list of adapter instances or null.
+   */
+  async getAdapterInstances(adapterName?: string): Promise<ioBroker.InstanceObject[] | null> {
+    return this.sendCallbackResult<ioBroker.InstanceObject[] | null>('getAdapterInstances', [adapterName]);
+  }
+
+  /**
+   * Get an object by ID.
+   *
+   * @param id - Object ID.
+   * @returns The found object or null.
+   */
+  async getObject(id: string): Promise<ioBroker.Object | null> {
+    return this.sendCallbackResult<ioBroker.Object | null>('getObject', [id]);
+  }
+
+  /**
+   * Get several objects by IDs or all relevant web objects.
+   *
+   * @param list - Optional list of object IDs.
+   * @returns The object map or null.
+   */
+  async getObjects(list: string[] | null = null): Promise<Record<string, ioBroker.Object> | null> {
+    return this.sendCallbackResult<Record<string, ioBroker.Object> | null>('getObjects', [list]);
+  }
+
+  /**
+   * Get all relevant objects for the web client.
+   *
+   * @returns The object map or null.
+   */
+  async getAllObjects(): Promise<Record<string, ioBroker.Object> | null> {
+    return this.sendCallbackResult<Record<string, ioBroker.Object> | null>('getAllObjects', []);
+  }
+
+  /**
+   * Subscribe to object changes by pattern.
+   *
+   * @param pattern - Object pattern or list of object IDs.
+   * @returns A promise that resolves when the subscription request is sent.
+   */
+  async subscribeObjects(pattern: string | string[]): Promise<void> {
+    await this.sendCommand('subscribeObjects', [pattern]);
+  }
+
+  /**
+   * Unsubscribe from object changes by pattern.
+   *
+   * @param pattern - Object pattern or list of object IDs.
+   * @returns A promise that resolves when the unsubscribe request is sent.
+   */
+  async unsubscribeObjects(pattern: string | string[]): Promise<void> {
+    await this.sendCommand('unsubscribeObjects', [pattern]);
+  }
+
+  /**
+   * Query objects using a view.
+   *
+   * @param design - Design name.
+   * @param search - Search name.
+   * @param params - Query parameters.
+   * @returns The view rows or null.
+   */
+  async getObjectView(
+    design: string,
+    search: string,
+    params: { startkey?: string; endkey?: string; depth?: number },
+  ): Promise<{
+    rows: Array<{ id: string; value: ioBroker.Object & { virtual: boolean; hasChildren: number } }>;
+  } | null> {
+    return this.sendCallbackResult<{
+      rows: Array<{ id: string; value: ioBroker.Object & { virtual: boolean; hasChildren: number } }>;
+    } | null>('getObjectView', [design, search, params]);
+  }
+
+  /**
+   * Create or update an object.
+   *
+   * @param id - Object ID.
+   * @param obj - Object definition.
+   * @returns A promise that resolves when the object is set.
+   */
+  async setObject(id: string, obj: ioBroker.Object): Promise<void> {
+    await this.sendCommand('setObject', [id, obj]);
+  }
+
+  /**
+   * Delete an object.
+   *
+   * @param id - Object ID.
+   * @param _options - Optional delete options.
+   * @returns A promise that resolves when the object is deleted.
+   */
+  async delObject(id: string, _options?: any): Promise<void> {
+    await this.sendCommand('delObject', [id, _options]);
+  }
+
+  /**
+   * Get states by pattern for the current adapter.
+   *
+   * @param pattern - Optional state pattern or list of state IDs.
+   * @returns The state map or null.
+   */
+  async getStates(pattern?: string | string[]): Promise<Record<string, ioBroker.State> | null> {
+    return this.sendCallbackResult<Record<string, ioBroker.State> | null>('getStates', [pattern]);
+  }
+
+  /**
+   * Get foreign states by pattern.
+   *
+   * @param pattern - State pattern or list of state IDs.
+   * @returns The state map or null.
+   */
+  async getForeignStates(pattern: string | string[]): Promise<Record<string, ioBroker.State> | null> {
+    return this.sendCallbackResult<Record<string, ioBroker.State> | null>('getForeignStates', [pattern]);
+  }
+
+  /**
+   * Get a state by ID.
+   *
+   * @param id - State ID.
+   * @returns The state object or null.
+   */
+  async getState(id: string): Promise<ioBroker.State | null> {
+    return this.sendCallbackResult<ioBroker.State | null>('getState', [id]);
+  }
+
+  /**
+   * Set a state by ID.
+   *
+   * @param id - State ID.
+   * @param state - State value or object.
+   * @returns The updated state or null.
+   */
+  async setState(id: string, state: ioBroker.SettableState): Promise<ioBroker.State | null> {
+    return this.sendCallbackResult<ioBroker.State | null>('setState', [id, state]);
+  }
+
+  /**
+   * Get a binary state by ID.
+   *
+   * @param id - State ID.
+   * @returns The base64 binary state or null.
+   */
+  async getBinaryState(id: string): Promise<string | null> {
+    return this.sendCallbackResult<string | null>('getBinaryState', [id]);
+  }
+
+  /**
+   * Set a binary state by ID.
+   *
+   * @param id - State ID.
+   * @param base64 - Base64 encoded content.
+   * @returns A promise that resolves when the binary state is set.
+   */
+  async setBinaryState(id: string, base64: string): Promise<void> {
+    await this.sendCommand('setBinaryState', [id, base64]);
+  }
+
+  /**
+   * Subscribe to state changes by pattern.
+   *
+   * @param pattern - State pattern or list of state IDs.
+   * @returns A promise that resolves when subscription is requested.
+   */
+  async subscribe(pattern: string | string[]): Promise<void> {
+    await this.sendCommand('subscribe', [pattern]);
+  }
+
+  /**
+   * Subscribe to state changes by pattern (alias).
+   *
+   * @param pattern - State pattern or list of state IDs.
+   * @returns A promise that resolves when subscription is requested.
+   */
+  async subscribeStates(pattern: string | string[]): Promise<void> {
+    await this.sendCommand('subscribeStates', [pattern]);
+  }
+
+  /**
+   * Unsubscribe from state changes by pattern.
+   *
+   * @param pattern - State pattern or list of state IDs.
+   * @returns A promise that resolves when unsubscription is requested.
+   */
+  async unsubscribe(pattern: string | string[]): Promise<void> {
+    await this.sendCommand('unsubscribe', [pattern]);
+  }
+
+  /**
+   * Unsubscribe from state changes by pattern (alias).
+   *
+   * @param pattern - State pattern or list of state IDs.
+   * @returns A promise that resolves when unsubscription is requested.
+   */
+  async unsubscribeStates(pattern: string | string[]): Promise<void> {
+    await this.sendCommand('unsubscribeStates', [pattern]);
+  }
+
+  /**
+   * Read a file from the ioBroker DB.
+   *
+   * @param adapter - Adapter instance name.
+   * @param fileName - File name.
+   * @returns The file content and MIME type or null.
+   */
+  async readFile(adapter: string, fileName: string): Promise<{ data: string | ArrayBuffer | null; mimeType: string } | null> {
+    const result = await this.sendCallbackResultArray<[any, string | ArrayBuffer, string]>('readFile', [adapter, fileName]);
+    if (!result) {
+      return null;
+    }
+    return { data: result[1], mimeType: result[2] };
+  }
+
+  /**
+   * Read a file from the ioBroker DB as base64.
+   *
+   * @param adapter - Adapter instance name.
+   * @param fileName - File name.
+   * @returns The file content as base64 and MIME type or null.
+   */
+  async readFile64(adapter: string, fileName: string): Promise<{ base64: string | null; mimeType?: string | null } | null> {
+    const result = await this.sendCallbackResultArray<[any, string | null, string | null]>('readFile64', [adapter, fileName]);
+    if (!result) {
+      return null;
+    }
+    return { base64: result[1], mimeType: result[2] };
+  }
+
+  /**
+   * Write a file into the ioBroker DB as base64.
+   *
+   * @param adapter - Adapter instance name.
+   * @param fileName - File name.
+   * @param data64 - File content as base64.
+   * @param options - Optional mode options.
+   * @returns A promise that resolves when the file is written.
+   */
+  async writeFile64(adapter: string, fileName: string, data64: string, options?: { mode?: number }): Promise<void> {
+    await this.sendCommand('writeFile64', [adapter, fileName, data64, options]);
+  }
+
+  /**
+   * Write a file into the ioBroker DB as text.
+   *
+   * @param adapter - Adapter instance name.
+   * @param fileName - File name.
+   * @param data - File content as text.
+   * @param options - Optional mode options.
+   * @returns A promise that resolves when the file is written.
+   */
+  async writeFile(adapter: string, fileName: string, data: string, options?: { mode?: number }): Promise<void> {
+    await this.sendCommand('writeFile', [adapter, fileName, data, options]);
+  }
+
+  /**
+   * Delete a file in the ioBroker DB.
+   *
+   * @param adapter - Adapter instance name.
+   * @param name - File name.
+   * @returns A promise that resolves when the file is deleted.
+   */
+  async unlink(adapter: string, name: string): Promise<void> {
+    await this.sendCommand('unlink', [adapter, name]);
+  }
+
+  /**
+   * Delete a file in the ioBroker DB.
+   *
+   * @param adapter - Adapter instance name.
+   * @param name - File name.
+   * @returns A promise that resolves when the file is deleted.
+   */
+  async deleteFile(adapter: string, name: string): Promise<void> {
+    await this.sendCommand('deleteFile', [adapter, name]);
+  }
+
+  /**
+   * Delete a folder in the ioBroker DB.
+   *
+   * @param adapter - Adapter instance name.
+   * @param name - Folder name.
+   * @returns A promise that resolves when the folder is deleted.
+   */
+  async deleteFolder(adapter: string, name: string): Promise<void> {
+    await this.sendCommand('deleteFolder', [adapter, name]);
+  }
+
+  /**
+   * Rename a file in the ioBroker DB.
+   *
+   * @param adapter - Adapter instance name.
+   * @param oldName - Current file name.
+   * @param newName - New file name.
+   * @returns A promise that resolves when the file is renamed.
+   */
+  async renameFile(adapter: string, oldName: string, newName: string): Promise<void> {
+    await this.sendCommand('renameFile', [adapter, oldName, newName]);
+  }
+
+  /**
+   * Rename a file or folder in the ioBroker DB.
+   *
+   * @param adapter - Adapter instance name.
+   * @param oldName - Current name.
+   * @param newName - New name.
+   * @returns A promise that resolves when the rename is complete.
+   */
+  async rename(adapter: string, oldName: string, newName: string): Promise<void> {
+    await this.sendCommand('rename', [adapter, oldName, newName]);
+  }
+
+  /**
+   * Create a folder in the ioBroker DB.
+   *
+   * @param adapter - Adapter instance name.
+   * @param dirName - Desired folder name.
+   * @returns A promise that resolves when the folder is created.
+   */
+  async mkdir(adapter: string, dirName: string): Promise<void> {
+    await this.sendCommand('mkdir', [adapter, dirName]);
+  }
+
+  /**
+   * Read the content of a folder in the ioBroker DB.
+   *
+   * @param adapter - Adapter instance name.
+   * @param dirName - Folder name.
+   * @param options - Optional read options.
+   * @returns The folder contents or null.
+   */
+  async readDir(adapter: string, dirName: string, options?: any): Promise<ioBroker.ReadDirResult[] | null> {
+    return this.sendCallbackResult<ioBroker.ReadDirResult[] | null>('readDir', [adapter, dirName, options]);
+  }
+
+  /**
+   * Change the mode of a file in the ioBroker DB.
+   *
+   * @param adapter - Adapter instance name.
+   * @param fileName - File name.
+   * @param options - Mode options.
+   * @returns A promise that resolves when the mode is changed.
+   */
+  async chmodFile(adapter: string, fileName: string, options?: { mode?: number }): Promise<void> {
+    await this.sendCommand('chmodFile', [adapter, fileName, options]);
+  }
+
+  /**
+   * Change file owner in the ioBroker DB.
+   *
+   * @param adapter - Adapter instance name.
+   * @param fileName - File name.
+   * @param options - Owner information or owner string.
+   * @returns A promise that resolves when ownership is changed.
+   */
+  async chownFile(adapter: string, fileName: string, options: { owner: string; ownerGroup?: string } | string): Promise<void> {
+    await this.sendCommand('chownFile', [adapter, fileName, options]);
+  }
+
+  /**
+   * Check whether a file or folder exists in the ioBroker DB.
+   *
+   * @param adapter - Adapter instance name.
+   * @param fileName - File or folder name.
+   * @returns True if the item exists, otherwise null.
+   */
+  async fileExists(adapter: string, fileName: string): Promise<boolean | null> {
+    return this.sendCallbackResult<boolean | null>('fileExists', [adapter, fileName]);
+  }
+
+  /**
+   * Subscribe to file changes in the ioBroker DB.
+   *
+   * @param id - Instance name or meta object ID.
+   * @param pattern - File name pattern or list of patterns.
+   * @returns A promise that resolves when the subscription is requested.
+   */
+  async subscribeFiles(id: string, pattern: string | string[]): Promise<void> {
+    await this.sendCommand('subscribeFiles', [id, pattern]);
+  }
+
+  /**
+   * Unsubscribe from file changes in the ioBroker DB.
+   *
+   * @param id - Instance name or meta object ID.
+   * @param pattern - File name pattern or list of patterns.
+   * @returns A promise that resolves when the unsubscription is requested.
+   */
+  async unsubscribeFiles(id: string, pattern: string | string[]): Promise<void> {
+    await this.sendCommand('unsubscribeFiles', [id, pattern]);
+  }
+
+  /*
+   * ADDITIONAL HISTORY COMMANDS
+   */
 
   /**
    * Returns the history configuration for all data points with enabled history.
@@ -149,8 +710,9 @@ export class IoBrokerWsService {
    * @param historyAdapter - Optional overwriting of the configured history adapter
    * @returns The history configurations
    */
-  public getHistoryConfigurations(historyAdapter?: string): Observable<Record<string, Partial<IoBrokerHistoryConfig>>> {
-    return from(this._connection.sendTo(historyAdapter ?? this._config.historyAdapter ?? this._defaultHistoryAdapter, 'getEnabledDPs'));
+  public getHistoryConfigurations(historyAdapter?: string): Promise<Record<string, Partial<IoBrokerHistoryConfig>>> {
+    const historyAdapterToUse = historyAdapter ?? this._config.historyAdapter ?? this._defaultHistoryAdapter;
+    return this.sendCallbackResult<any | null>('sendTo', [historyAdapterToUse, 'getEnabledDPs']);
   }
 
   /**
@@ -164,13 +726,16 @@ export class IoBrokerWsService {
    * @param historyAdapter - Optional overwriting of the configured history adapter
    * @returns The result of the operation
    */
-  public enableHistoryForDataPoint(id: string, config: Partial<IoBrokerHistoryConfig>, historyAdapter?: string): Observable<IoBrokerHistoryConfigResult> {
-    return from(
-      this._connection.sendTo(historyAdapter ?? this._config.historyAdapter ?? this._defaultHistoryAdapter, 'enableHistory', {
+  public enableHistoryForDataPoint(id: string, config: Partial<IoBrokerHistoryConfig>, historyAdapter?: string): Promise<IoBrokerHistoryConfigResult> {
+    const historyAdapterToUse = historyAdapter ?? this._config.historyAdapter ?? this._defaultHistoryAdapter;
+    return this.sendCallbackResult<any | null>('sendTo', [
+      historyAdapterToUse,
+      'enableHistory',
+      {
         id,
         options: config,
-      }),
-    );
+      },
+    ]);
   }
 
   /**
@@ -183,170 +748,14 @@ export class IoBrokerWsService {
    * @param historyAdapter - Optional overwriting of the configured history adapter
    * @returns The result of the operation
    */
-  public disableHistoryForDataPoint(id: string, historyAdapter?: string): Observable<IoBrokerHistoryConfigResult> {
-    return from(
-      this._connection.sendTo(historyAdapter ?? this._config.historyAdapter ?? this._defaultHistoryAdapter, 'disableHistory', {
+  public disableHistoryForDataPoint(id: string, historyAdapter?: string): Promise<IoBrokerHistoryConfigResult> {
+    const historyAdapterToUse = historyAdapter ?? this._config.historyAdapter ?? this._defaultHistoryAdapter;
+    return this.sendCallbackResult<any | null>('sendTo', [
+      historyAdapterToUse,
+      'disableHistory',
+      {
         id,
-      }),
-    );
-  }
-
-  /**
-   * Gets the object with the given id from the server.
-   *
-   * @param id - The object ID
-   * @returns The object
-   */
-  public getObject(id: string): Observable<ioBroker.Object | null | undefined> {
-    return from(this._connection.getObject(id));
-  }
-
-  /**
-   * Gets all objects.
-   *
-   * @returns The objects
-   */
-  public getObjects(): Observable<Record<string, ioBroker.Object>> {
-    return from(this._connection.getObjects());
-  }
-
-  /**
-   * Gets the given state.
-   *
-   * @param id - The state ID
-   * @returns The state
-   */
-  public getState(id: string): Observable<ioBroker.State | null | undefined> {
-    return from(this._connection.getState(id));
-  }
-
-  /**
-   * Gets all states.
-   *
-   * @param pattern - Pattern of states or array of IDs
-   * @returns The states
-   */
-  public getStates(pattern?: string | string[]): Observable<Record<string, ioBroker.State>> {
-    return from(this._connection.getStates(pattern));
-  }
-
-  /**
-   * Sets the given state value.
-   *
-   * @param id - The state ID
-   * @param value - The state value
-   * @param ack - Optional acknowledgement flag
-   */
-  public setState(id: string, value: ioBroker.StateValue, ack?: boolean): void {
-    this._connection.setState(id, value, ack);
-  }
-
-  /**
-   * Sends log to ioBroker log.
-   *
-   * @param text - Log text
-   * @param level - Log level
-   */
-  public log(text: string, level: 'info' | 'debug' | 'warn' | 'error' | 'silly'): void {
-    this._connection.log(text, level);
-  }
-
-  /**
-   * Sends a message to a specific instance or all instances of some specific adapter.
-   *
-   * @param instance - The instance to send this message to
-   * @param command - The command name of the target instance
-   * @param data - The message data to send
-   */
-  public sendTo(instance: string, command: string, data?: any): void {
-    this._connection.sendTo(instance, command, data);
-  }
-
-  private createConnection(): Connection {
-    const clientName = this._config.clientName.length <= 0 ? `ngx-iobroker.client${Math.floor(Math.random() * 500)}` : this._config.clientName;
-    const host = `${this._config.hostnameOrIp}:${this._config.port}`;
-    const authParams = this._config.credentials ? `key=nokey&user=${this._config.credentials?.user}&pass=${this._config.credentials?.password}&` : '';
-    const configParams = `EIO=3&transport=websocket`;
-
-    const connection = new Connection({
-      name: clientName,
-      host: `${host}/?${authParams}${configParams}`,
-      protocol: this.getProtocol(),
-      onProgress: (progress: PROGRESS) => this.callbackOnProgress(progress),
-      onReady: (objects: Record<string, ioBroker.Object>) => this.callbackOnReady(objects),
-      onObjectChange: (id: string, obj: ioBroker.Object | null | undefined) => this.callbackOnObjectChange(id, obj),
-    });
-
-    connection.registerConnectionHandler((connected: boolean) => this.callbackOnConnectionChanged(connected));
-
-    return connection;
-  }
-
-  private callbackOnProgress(progress: PROGRESS): void {
-    this._connectionProgress.next(progress);
-  }
-
-  private callbackOnReady(objects: Record<string, ioBroker.Object>): void {
-    if (this._config.autoSubscribes) {
-      this._config.autoSubscribes.forEach((id: string) => {
-        this.listenStateChanges(id);
-      });
-    }
-  }
-
-  private callbackOnObjectChange(id: string, obj: ioBroker.Object | null | undefined): void {
-    this._objectChanged.next({ id, object: obj });
-  }
-
-  private callbackOnConnectionChanged(connected: boolean): void {
-    this._connected.next(connected);
-  }
-
-  private getProtocol(): string {
-    return `http${this._config.secureConnection ? 's' : ''}`;
-  }
-
-  private async initAsync(): Promise<void> {
-    if (this._config.autoLoadScriptOnInit) {
-      this.loadIoBrokerWsScript();
-    }
-
-    const success = await this.waitForIoBrokerWsScriptLoadedAsync(3000);
-
-    if (!success) {
-      console.error(
-        this._config.autoLoadScriptOnInit
-          ? 'Script cant be loaded. Make sure hostname/ip, port and secure settings are correctly.'
-          : 'Script cant be loaded. Make sure script is attached in index.html head correctly.',
-      );
-    }
-  }
-
-  private loadIoBrokerWsScript(): void {
-    const node = document.createElement('script');
-    node.src = `${this.getProtocol()}://${this._config.hostnameOrIp}:${this._config.port}/socket.io/socket.io.js`;
-    node.type = 'text/javascript';
-    node.async = true;
-    document.getElementsByTagName('head')[0].appendChild(node);
-  }
-
-  private async waitForIoBrokerWsScriptLoadedAsync(timeoutMs: number): Promise<boolean> {
-    return new Promise((resolve) => {
-      let currentMs = 0;
-      const interval = setInterval(() => {
-        try {
-          //@ts-expect-error Will access to window.io after script loaded
-          if (io) {
-            clearInterval(interval);
-            resolve(true);
-          }
-        } catch (_) {
-          currentMs += 10;
-          if (currentMs >= timeoutMs) {
-            resolve(false);
-          }
-        }
-      }, 10);
-    });
+      },
+    ]);
   }
 }

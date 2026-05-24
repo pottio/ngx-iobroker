@@ -21,17 +21,17 @@ A [ioBroker](https://github.com/ioBroker) server with installed adapter [ioBroke
 
 In case of secure connection via HTTPS and self signed certificate, make sure the root CA is installed as trusted CA on all client devices.
 
-Angular version compatibility matrix
+If authentication is enabled, you may need to adjust the CORS settings.
+
+Angular version compatibility: The major version of **ngx-iobroker** is compatible with the corresponding major version of Angular
 
 | ngx-iobroker | Angular |
 | ------------ | ------- |
-| 1.2.x        | 19.x    |
-| 1.1.x        | 18.x    |
-| 1.0.x        | 17.x    |
+| 20.x         | 20.x    |
 
 ## Getting Started
 
-Install `ngx-iobroker` from npm:
+Install **ngx-iobroker** from npm:
 
 ```bash
 npm install ngx-iobroker --save
@@ -40,9 +40,9 @@ npm install ngx-iobroker --save
 Add configuration into `app.config.ts`:
 
 ```typescript
-import { IoBrokerWsConfiguration, ioBrokerWsConfigurationToken } from 'ngx-iobroker';
+import { IoBrokerWebSocketConfiguration, ioBrokerWebSocketConfigurationToken } from 'ngx-iobroker';
 
-const ioBrokerConfiguration: IoBrokerWsConfiguration = {
+const ioBrokerConfiguration: IoBrokerWebSocketConfiguration = {
   clientName: 'sample-app',
   hostnameOrIp: '<ioBrokerIpOrHostname>',
   port: 8082,
@@ -52,27 +52,25 @@ const ioBrokerConfiguration: IoBrokerWsConfiguration = {
     user: '<ioBrokerUser>',
     password: '<ioBrokerPassword>',
   },
-  autoLoadScriptOnInit: true,
-  autoSubscribes: ['0_userdata.*'],
 };
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
     {
-      provide: ioBrokerWsConfigurationToken,
+      provide: ioBrokerWebSocketConfigurationToken,
       useValue: ioBrokerConfiguration,
     },
   ],
 };
 ```
 
-Import `IoBrokerWsService` in the needed component(s):
+Import `IoBrokerWebSocketService` in the needed component(s):
 
 ```typescript
 import { Component, inject } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { IoBrokerWsService } from 'ngx-iobroker';
+import { IoBrokerWebSocketService } from 'ngx-iobroker';
 
 @Component({
   selector: 'app-root',
@@ -80,17 +78,18 @@ import { IoBrokerWsService } from 'ngx-iobroker';
   imports: [],
   template: `
     <div>
-      Connected: <strong>{{ ioBrokerConnected() }}</strong>
+      Connection-State: <strong>{{ ioBrokerConnectionState() }}</strong>
     </div>
     <p>See console logs (F12) for state changes</p>
   `,
 })
 export class AppComponent {
-  private readonly _ioBroker = inject(IoBrokerWsService);
+  private readonly _ioBroker = inject(IoBrokerWebSocketService);
 
-  public readonly ioBrokerConnected = toSignal(this._ioBroker.connected$, { initialValue: false });
+  public readonly ioBrokerConnectionState = toSignal(this._ioBroker.connectionState$);
 
   constructor() {
+    this._ioBroker.connect();
     this._ioBroker.stateChanged$.pipe(takeUntilDestroyed()).subscribe((value) => {
       console.log(`${value.id}: ${value.state?.val}`);
     });
@@ -100,30 +99,41 @@ export class AppComponent {
 
 ## Configuration
 
-| Parameter            | Description                                                       | Required |
-| -------------------- | ----------------------------------------------------------------- | -------- |
-| clientName           | Individual name                                                   | required |
-| hostnameOrIp         | The hostname or ip of ioBroker                                    | required |
-| port                 | The port number of web / ws adapter                               | required |
-| secureConnection     | Connect via HTTPS                                                 | optional |
-| credentials          | Username and password of ioBroker user                            | optional |
-| historyAdapter       | The instance name of default history adapter                      | optional |
-| autoLoadScriptOnInit | Auto load necessary socket javascript file from ioBroker server\* | optional |
-| autoSubscribes       | Directly subscribes to IDs/Patterns after init connection         | optional |
+| Parameter        | Description                                  | Required |
+| ---------------- | -------------------------------------------- | -------- |
+| clientName       | Individual name                              | required |
+| hostnameOrIp     | The hostname or ip of ioBroker               | required |
+| port             | The port number of web / ws adapter          | required |
+| secureConnection | Connect via HTTPS                            | optional |
+| credentials      | Username and password of ioBroker user       | optional |
+| historyAdapter   | The instance name of default history adapter | optional |
 
-\* if deactivated `autoLoadScriptOnInit` it is necessary to load the script in client via index.html:
+## Usage
 
-```html
-<!doctype html>
-<html>
-  <head>
-    <!-- Replace "<protocol>" with http or https and "<hostnameOrIp>" / "<port>" with real IP address / port of controller -->
-    <script type="text/javascript" src="<protocol>://<hostnameOrIp>:<port>/socket.io/socket.io.js"></script>
-    <!-- ... -->
-  </head>
-  <body></body>
-</html>
-```
+### Observables
+
+| Observable       | Description                                                                              | Type                                                       |
+| ---------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| ready$           | WebSocket connection is established. Ready receive messages and send commands.           | boolean                                                    |
+| connectionState$ | State of WebSocket connection.                                                           | ConnectionState ('disconnected', 'connecting','connected') |
+| errors$          | Errors during connection or message handling.                                            | string                                                     |
+| stateChanged$    | State change of subscribed states via `subscribe(...)` or `subscribeStates(...)` command | object (id: string, state: ioBroker.State or null)         |
+| objectChanged$   | Object change of subscribed objects via `subscribeObjects(...)` command                  | object (id: string, state: ioBroker.Object or null)        |
+
+### Connection handling
+
+- `connect(): Promise<void>`
+- `disconnect(): Promise<void>`
+
+### Commands
+
+All commands described in [ioBroker.socket-classes repository](https://github.com/ioBroker/ioBroker.socket-classes#web-methods) are supported.
+
+In addition, the following methods have been added to simplify the handling of historical values via history adapter.
+
+- `getHistoryConfigurations(historyAdapter?: string): Promise<Record<string, Partial<IoBrokerHistoryConfig>>>`
+- `enableHistoryForDataPoint(id: string, config: Partial<IoBrokerHistoryConfig>, historyAdapter?: string): Promise<IoBrokerHistoryConfigResult>`
+- `disableHistoryForDataPoint(id: string, historyAdapter?: string): Promise<IoBrokerHistoryConfigResult>`
 
 ## License
 

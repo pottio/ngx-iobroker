@@ -1,4 +1,4 @@
-export interface IoBrokerWsConfiguration {
+export interface IoBrokerWebSocketConfiguration {
   clientName: string;
   hostnameOrIp: string;
   port: number;
@@ -8,8 +8,6 @@ export interface IoBrokerWsConfiguration {
     password: string;
   };
   historyAdapter?: string;
-  autoLoadScriptOnInit?: boolean;
-  autoSubscribes?: string[];
 }
 
 export interface IoBrokerHistoryConfig {
