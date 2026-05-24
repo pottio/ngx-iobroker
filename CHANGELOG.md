@@ -1,3 +1,10 @@
+# [20.1.0](https://github.com/pottio/ngx-iobroker/compare/v20.0.0...v20.1.0) (2026-05-24)
+
+
+### Features
+
+* **pencil:** updated dependencies ([75c3ed5](https://github.com/pottio/ngx-iobroker/commit/75c3ed52efa832eb11e49d6ba56e28bd0f5e5bd7))
+
 # [20.0.0](https://github.com/pottio/ngx-iobroker/compare/v19.0.0...v20.0.0) (2026-05-24)
 
 
