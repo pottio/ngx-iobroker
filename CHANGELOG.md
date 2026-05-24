@@ -1,3 +1,13 @@
+## [20.1.1](https://github.com/pottio/ngx-iobroker/compare/v20.1.0...v20.1.1) (2026-05-24)
+
+
+### Bug Fixes
+
+* **pencil:** github pipeline ([0770c60](https://github.com/pottio/ngx-iobroker/commit/0770c60e677d2f61de438a474cb5ca7509a225e7))
+* **pencil:** github pipeline ([85f1c81](https://github.com/pottio/ngx-iobroker/commit/85f1c81be952c401f01d0844e6a240b891a98a07))
+* **pencil:** github pipeline ([93026e0](https://github.com/pottio/ngx-iobroker/commit/93026e0d286e6906558f9ddf5f270a0dd8fdf5a5))
+* **pencil:** github pipeline ([698a101](https://github.com/pottio/ngx-iobroker/commit/698a1013a73e70eb13d68833fcbd514dca855e30))
+
 # [20.1.0](https://github.com/pottio/ngx-iobroker/compare/v20.0.0...v20.1.0) (2026-05-24)
 
 
