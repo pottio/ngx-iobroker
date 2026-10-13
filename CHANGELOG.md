@@ -1,3 +1,15 @@
+# [21.0.0](https://github.com/pottio/ngx-iobroker/compare/v20.1.1...v21.0.0) (2026-10-13)
+
+
+* Angular 21 ([#6](https://github.com/pottio/ngx-iobroker/issues/6)) ([1d847c9](https://github.com/pottio/ngx-iobroker/commit/1d847c91287c32cc0fdc7c54d6815d51e71c522a))
+
+
+### BREAKING CHANGES
+
+* The major framework has been updated to v21
+
+* docs: Update README.md
+
 ## [20.1.1](https://github.com/pottio/ngx-iobroker/compare/v20.1.0...v20.1.1) (2026-05-24)
 
 
