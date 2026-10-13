@@ -27,8 +27,7 @@
         "test": {
           "builder": "@angular/build:karma",
           "options": {
-            "tsConfig": "projects/ngx-iobroker/tsconfig.spec.json",
-            "polyfills": ["zone.js", "zone.js/testing"]
+            "tsConfig": "projects/ngx-iobroker/tsconfig.spec.json"
           }
         }
       }
@@ -50,7 +49,6 @@
             "outputPath": "dist/sample-app",
             "index": "projects/sample-app/src/index.html",
             "browser": "projects/sample-app/src/main.ts",
-            "polyfills": ["zone.js"],
             "tsConfig": "projects/sample-app/tsconfig.app.json",
             "inlineStyleLanguage": "scss",
             "assets": ["projects/sample-app/src/favicon.ico", "projects/sample-app/src/assets"],
@@ -82,8 +80,7 @@
             "testing": {
               "aot": false,
               "optimization": false,
-              "extractLicenses": false,
-              "polyfills": ["zone.js", "zone.js/testing"]
+              "extractLicenses": false
             }
           },
           "defaultConfiguration": "production"
