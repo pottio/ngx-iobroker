@@ -1,3 +1,10 @@
+## [22.0.1](https://github.com/pottio/ngx-iobroker/compare/v22.0.0...v22.0.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* peer dependencies ([#9](https://github.com/pottio/ngx-iobroker/issues/9)) ([f8584c1](https://github.com/pottio/ngx-iobroker/commit/f8584c116cadae9ca393776026d1eeadfbcf02a5))
+
 # [22.0.0](https://github.com/pottio/ngx-iobroker/compare/v21.0.0...v22.0.0) (2026-10-13)
 
 
