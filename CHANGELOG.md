@@ -1,3 +1,15 @@
+# [22.0.0](https://github.com/pottio/ngx-iobroker/compare/v21.0.0...v22.0.0) (2026-10-13)
+
+
+### Performance Improvements
+
+* update to Angular v22 ([#7](https://github.com/pottio/ngx-iobroker/issues/7)) ([3a0da80](https://github.com/pottio/ngx-iobroker/commit/3a0da809ade120504079ef2816caeaf7869dda50))
+
+
+### BREAKING CHANGES
+
+* The major framework has been updated to v22
+
 # [21.0.0](https://github.com/pottio/ngx-iobroker/compare/v20.1.1...v21.0.0) (2026-10-13)
 
 
