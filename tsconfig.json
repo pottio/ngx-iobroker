@@ -10,9 +10,7 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "paths": {
-      "ngx-iobroker": [
-        "./dist/ngx-iobroker"
-      ]
+      "ngx-iobroker": ["./dist/ngx-iobroker"]
     },
     "esModuleInterop": true,
     "sourceMap": true,
@@ -22,11 +20,7 @@
     "importHelpers": true,
     "target": "ES2022",
     "module": "ES2022",
-    "useDefineForClassFields": false,
-    "lib": [
-      "ES2022",
-      "dom"
-    ]
+    "useDefineForClassFields": false
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

@@ -27,6 +27,7 @@ Angular version compatibility: The major version of **ngx-iobroker** is compatib
 
 | ngx-iobroker | Angular |
 | ------------ | ------- |
+| 21.x         | 21.x    |
 | 20.x         | 20.x    |
 
 ## Getting Started
@@ -48,21 +49,10 @@ const ioBrokerConfiguration: IoBrokerWebSocketConfiguration = {
   port: 8082,
   secureConnection: true,
   historyAdapter: 'influxdb.0',
-  credentials: {
-    user: '<ioBrokerUser>',
-    password: '<ioBrokerPassword>',
-  },
+  credentials: { user: '<ioBrokerUser>', password: '<ioBrokerPassword>' },
 };
 
-export const appConfig: ApplicationConfig = {
-  providers: [
-    provideRouter(routes),
-    {
-      provide: ioBrokerWebSocketConfigurationToken,
-      useValue: ioBrokerConfiguration,
-    },
-  ],
-};
+export const appConfig: ApplicationConfig = { providers: [provideRouter(routes), { provide: ioBrokerWebSocketConfigurationToken, useValue: ioBrokerConfiguration }] };
 ```
 
 Import `IoBrokerWebSocketService` in the needed component(s):
