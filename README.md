@@ -27,6 +27,7 @@ Angular version compatibility: The major version of **ngx-iobroker** is compatib
 
 | ngx-iobroker | Angular |
 | ------------ | ------- |
+| 22.x         | 22.x    |
 | 21.x         | 21.x    |
 | 20.x         | 20.x    |
 
